@@ -72,11 +72,22 @@ shift $((OPTIND-1))
 
 # TODO validate that a NewNode proxy is running at host:port
 
+curl_cmd=(
+    curl
+    --output /dev/null # send any output to the bit bucket
+    --proxy $proxy_host:$proxy_port # use the specified proxy
+    --location # follow redirects
+    --silent # don't show progress or error messages
+    --fail # fail silently on server errors
+    --range 0-0 # only retrieve the first byte
+    --write-out "%{http_code}" # when done, write HTTP response code to standard output
+)
+
 line=0
 while IFS=, read -r url category_code category_description date_added src notes
 do
-    [ $((++line)) -eq 1 ] && continue
-    response="$(curl --output /dev/null --proxy $proxy_host:$proxy_port --location --silent --fail -r 0-0 -w "%{http_code}" $url)"
+    [ $((++line)) -eq 1 ] && continue # ignore header line in CSV file
+    response="$(${curl_cmd[@]} $url)"
     echo "$url $response"
     track_response_stats "$response"
 done < $@
